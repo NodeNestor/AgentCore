@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pytest tests/*)",
+      "Bash(bats tests/shell/*)",
+      "Bash(docker build*)",
+      "Bash(docker images*)",
+      "Bash(bash -n *)"
+    ]
+  }
+}

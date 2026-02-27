@@ -361,11 +361,31 @@ bash tests/test-minimal.sh
 # Smoke test ubuntu image (includes VNC/noVNC checks)
 bash tests/test-ubuntu.sh
 
+# Run Python unit tests (170 tests)
+pip install -r tests/requirements-dev.txt
+pytest tests/ -v
+
+# Run shell unit tests
+bats tests/shell/*.bats
+
 # Run a single module in isolation
 source entrypoint/lib/env.sh
 source entrypoint/lib/log.sh
 source entrypoint/modules/50-mcp-tools.sh
 ```
+
+### Claude Code Skills
+
+If you develop with Claude Code, the project includes slash commands in `.claude/commands/`:
+
+| Command | Description |
+|---------|-------------|
+| `/build` | Build Docker images (minimal, ubuntu, kali, or all) |
+| `/test` | Run test suites (python, shell, docker, or all) |
+| `/add-mcp-tool` | Walk through adding a new MCP server to the registry |
+| `/add-module` | Walk through adding a new entrypoint module |
+| `/add-agent` | Walk through adding a new coding agent type |
+| `/validate` | Validate all configs, scripts, and Dockerfiles |
 
 ---
 

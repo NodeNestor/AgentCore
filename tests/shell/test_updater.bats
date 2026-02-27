@@ -115,6 +115,11 @@ setup() {
     printf '#!/bin/bash\necho "ran"\n' > "${AGENTS_DIR}/testbot.sh"
     chmod -x "${AGENTS_DIR}/testbot.sh"
 
+    # Skip on filesystems where chmod -x has no effect (e.g. tmpfs on Windows/MSYS2).
+    if [ -x "${AGENTS_DIR}/testbot.sh" ]; then
+        skip "Filesystem does not honour chmod -x in BATS_TEST_TMPDIR"
+    fi
+
     run run_agent_update "testbot"
     [ "$status" -eq 0 ]
     [[ "$output" == *"WARNING"* ]]

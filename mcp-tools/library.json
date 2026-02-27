@@ -123,6 +123,17 @@
       "category": "memory",
       "default": false,
       "requiredEnv": ["QDRANT_URL"]
+    },
+    "hiveminddb": {
+      "name": "HiveMindDB",
+      "description": "Distributed AI agent hivemind memory: knowledge graphs, semantic search, real-time channels, LLM extraction, Raft-replicated",
+      "command": "npx",
+      "args": ["hiveminddb-mcp", "--url", "${HIVEMINDDB_URL}"],
+      "builtIn": false,
+      "requiresDesktop": false,
+      "category": "memory",
+      "default": false,
+      "requiredEnv": ["HIVEMINDDB_URL"]
     }
   }
 }
