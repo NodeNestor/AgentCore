@@ -1,0 +1,128 @@
+{
+  "mcpServers": {
+    "desktop-control": {
+      "name": "Desktop Control",
+      "description": "Full OS desktop control: screen capture, mouse, keyboard, window management, clipboard",
+      "command": "python3",
+      "args": ["/opt/mcp-tools/desktop-control/server.py"],
+      "builtIn": true,
+      "requiresDesktop": true,
+      "category": "system",
+      "default": false
+    },
+    "filesystem": {
+      "name": "Filesystem",
+      "description": "Read, write, and manage files in the /workspace/projects directory",
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem", "/workspace/projects"],
+      "builtIn": true,
+      "requiresDesktop": false,
+      "category": "development",
+      "default": true
+    },
+    "playwright": {
+      "name": "Playwright",
+      "description": "Browser automation and web testing using Playwright",
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--no-sandbox"],
+      "builtIn": true,
+      "requiresDesktop": false,
+      "category": "testing",
+      "default": true
+    },
+    "context7": {
+      "name": "Context7",
+      "description": "Retrieves up-to-date documentation and code examples for any programming library or framework",
+      "command": "npx",
+      "args": ["@upstash/context7-mcp"],
+      "builtIn": true,
+      "requiresDesktop": false,
+      "category": "documentation",
+      "default": true
+    },
+    "github": {
+      "name": "GitHub",
+      "description": "Interact with GitHub repositories, issues, pull requests, and more",
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-github"],
+      "builtIn": false,
+      "requiresDesktop": false,
+      "category": "development",
+      "default": false,
+      "requiredEnv": ["GITHUB_TOKEN"]
+    },
+    "postgres": {
+      "name": "PostgreSQL",
+      "description": "Query and manage PostgreSQL databases",
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-postgres"],
+      "builtIn": false,
+      "requiresDesktop": false,
+      "category": "database",
+      "default": false,
+      "requiredEnv": ["POSTGRES_CONNECTION_STRING"]
+    },
+    "sqlite": {
+      "name": "SQLite",
+      "description": "Query and manage SQLite database files",
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-sqlite"],
+      "builtIn": false,
+      "requiresDesktop": false,
+      "category": "database",
+      "default": false
+    },
+    "memory": {
+      "name": "Memory",
+      "description": "Persistent key-value memory store for agents across sessions",
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-memory"],
+      "builtIn": false,
+      "requiresDesktop": false,
+      "category": "system",
+      "default": false
+    },
+    "fetch": {
+      "name": "Fetch",
+      "description": "Make HTTP requests and fetch web content",
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-fetch"],
+      "builtIn": false,
+      "requiresDesktop": false,
+      "category": "network",
+      "default": false
+    },
+    "agent-memory": {
+      "name": "Agent Memory",
+      "description": "Persistent markdown-based memory store: remember, recall, search, and manage topics across sessions",
+      "command": "python3",
+      "args": ["/opt/mcp-tools/agent-memory/server.py"],
+      "builtIn": true,
+      "requiresDesktop": false,
+      "category": "memory",
+      "default": true
+    },
+    "mem0": {
+      "name": "Mem0",
+      "description": "AI-powered memory layer using Mem0 cloud service",
+      "command": "npx",
+      "args": ["@mem0/mcp"],
+      "builtIn": false,
+      "requiresDesktop": false,
+      "category": "memory",
+      "default": false,
+      "requiredEnv": ["MEM0_API_KEY"]
+    },
+    "qdrant": {
+      "name": "Qdrant",
+      "description": "Vector similarity search and memory using Qdrant",
+      "command": "npx",
+      "args": ["@qdrant/mcp"],
+      "builtIn": false,
+      "requiresDesktop": false,
+      "category": "memory",
+      "default": false,
+      "requiredEnv": ["QDRANT_URL"]
+    }
+  }
+}

@@ -1,0 +1,11 @@
+.git
+.github
+.vscode
+.idea
+*.md
+!README.md
+LICENSE
+tests/
+examples/
+.env
+.env.*

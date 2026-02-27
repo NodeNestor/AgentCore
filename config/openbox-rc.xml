@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  openbox-rc.xml — Openbox window manager configuration for AgentCore containers.
+  Installed to /home/agent/.config/openbox/rc.xml at container startup.
+
+  Window rules (evaluated top-to-bottom, first match wins):
+    - Chrome / Chromium / Playwright windows  => no decoration, auto-maximized
+    - All other applications                  => decoration, maximized
+-->
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+
+  <!-- Snap resistance at screen edges -->
+  <resistance>
+    <strength>10</strength>
+    <screen_edge_strength>20</screen_edge_strength>
+  </resistance>
+
+  <!-- Focus behaviour: click-to-focus, no mouse-follows-focus -->
+  <focus>
+    <focusNew>yes</focusNew>
+    <followMouse>no</followMouse>
+    <focusLast>yes</focusLast>
+    <underMouse>no</underMouse>
+    <focusDelay>200</focusDelay>
+    <raiseOnFocus>no</raiseOnFocus>
+  </focus>
+
+  <!-- Window placement -->
+  <placement>
+    <policy>Smart</policy>
+    <center>yes</center>
+    <monitor>Primary</monitor>
+    <primaryMonitor>1</primaryMonitor>
+  </placement>
+
+  <!-- Theme -->
+  <theme>
+    <name>Clearlooks</name>
+    <titleLayout>NLIMC</titleLayout>
+    <keepBorder>yes</keepBorder>
+    <animateIconify>yes</animateIconify>
+    <font place="ActiveWindow">
+      <name>Sans</name>
+      <size>10</size>
+      <weight>Bold</weight>
+      <slant>Normal</slant>
+    </font>
+    <font place="InactiveWindow">
+      <name>Sans</name>
+      <size>10</size>
+      <weight>Bold</weight>
+      <slant>Normal</slant>
+    </font>
+  </theme>
+
+  <!-- Single desktop -->
+  <desktops>
+    <number>1</number>
+    <firstdesk>1</firstdesk>
+    <names><name>Desktop</name></names>
+    <popupTime>875</popupTime>
+  </desktops>
+
+  <!-- Resize -->
+  <resize>
+    <drawContents>yes</drawContents>
+    <popupShow>Nonpixel</popupShow>
+    <popupPosition>Center</popupPosition>
+  </resize>
+
+  <!-- No reserved screen margins -->
+  <margins>
+    <top>0</top>
+    <bottom>0</bottom>
+    <left>0</left>
+    <right>0</right>
+  </margins>
+
+  <!-- Keyboard chain escape key -->
+  <keyboard>
+    <chainQuitKey>C-g</chainQuitKey>
+  </keyboard>
+
+  <!-- Mouse settings -->
+  <mouse>
+    <dragThreshold>1</dragThreshold>
+    <doubleClickTime>500</doubleClickTime>
+    <screenEdgeWarpTime>400</screenEdgeWarpTime>
+    <screenEdgeWarpMouse>false</screenEdgeWarpMouse>
+  </mouse>
+
+  <!--
+    Per-application window rules.
+
+    Chrome / Chromium / Playwright windows get no title-bar decoration and are
+    auto-maximised so they fill the entire virtual display — this is important
+    for VNC-based browser automation where the agent needs a full-screen viewport.
+
+    Every other application gets standard decoration and is also maximised.
+  -->
+  <applications>
+
+    <!-- Google Chrome (any profile / window title) -->
+    <application class="Google-chrome*">
+      <decor>no</decor>
+      <maximized>true</maximized>
+      <focus>yes</focus>
+    </application>
+
+    <!-- Chromium (capital C, as reported by WM_CLASS) -->
+    <application class="Chromium*">
+      <decor>no</decor>
+      <maximized>true</maximized>
+      <focus>yes</focus>
+    </application>
+
+    <!-- Chromium (lower-case, snap / flatpak variants) -->
+    <application class="chromium*">
+      <decor>no</decor>
+      <maximized>true</maximized>
+      <focus>yes</focus>
+    </application>
+
+    <!-- Playwright-launched browser windows (window name contains "Playwright") -->
+    <application name="*Playwright*">
+      <decor>no</decor>
+      <maximized>true</maximized>
+      <focus>yes</focus>
+    </application>
+
+    <!-- Default rule: all other windows get decoration and are maximised -->
+    <application class="*">
+      <decor>yes</decor>
+      <maximized>true</maximized>
+    </application>
+
+  </applications>
+
+</openbox_config>

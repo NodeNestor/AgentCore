@@ -1,0 +1,34 @@
+# Build artifacts
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
+
+# Data/state
+data/
+*.db
+*.sqlite
+
+# Credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+.docker/
+
+# Agent state
+.agent-memory/

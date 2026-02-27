@@ -1,0 +1,235 @@
+# Dockerfile.kali — AgentCore Kali Linux security variant.
+#
+# Based on kalilinux/kali-rolling (Debian-derived, rolling release).
+# Extends the desktop image with a curated set of Kali security tools.
+#
+# Key differences from Dockerfile.ubuntu:
+#   - Base image: kalilinux/kali-rolling (not ubuntu:24.04)
+#   - Node.js installed via official binary tarball (not NodeSource) because
+#     NodeSource does not publish packages for the Kali/Debian codename.
+#     The install-node.sh script detects the distro automatically and falls
+#     back to the tarball path for any non-Ubuntu distro.
+#   - Security tooling layer added after core packages.
+#   - Docker CE uses the Debian (bookworm) apt feed — handled by packages-dev.sh.
+#   - .NET installed via dotnet-install.sh script on Kali — handled by packages-dev.sh.
+#
+# Security tools installed:
+#   Recon:        nmap, whois, dnsenum, nbtscan, sslscan, whatweb
+#   Web:          nikto, sqlmap, dirb, gobuster, wfuzz, ffuf
+#   Auth:         hydra, john
+#   Network:      netcat-traditional, socat, tcpdump, tshark
+#   Modern CLI:   nuclei, subfinder, httpx-toolkit
+#   Wordlists:    wordlists, seclists
+#
+# Ports:
+#   22   — SSH
+#   5900 — VNC (x11vnc)
+#   6080 — noVNC (browser-accessible VNC over WebSocket)
+#   8080 — AgentCore HTTP API
+#
+# Build example with optional toolchains:
+#   docker build -f dockerfiles/Dockerfile.kali \
+#     --build-arg INSTALL_RUST=true \
+#     -t agentcore:kali .
+
+FROM kalilinux/kali-rolling
+
+# Prevent apt from prompting during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+# ---------------------------------------------------------------------------
+# Base installation scripts
+# ---------------------------------------------------------------------------
+COPY base/ /tmp/base/
+RUN chmod +x /tmp/base/*.sh
+
+# ---------------------------------------------------------------------------
+# Core CLI packages
+# Shared script — works on both Ubuntu and Kali (both are apt-based).
+# Installs: build tools, git, curl, python3, openssh-server, sudo, locales, jq, etc.
+# ---------------------------------------------------------------------------
+RUN /tmp/base/packages-core.sh
+
+# ---------------------------------------------------------------------------
+# Kali security tooling
+#
+# Grouped by category for readability and to make partial rebuilds practical.
+# All packages come from the official Kali repository.
+# ---------------------------------------------------------------------------
+
+# Reconnaissance and information gathering
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        nmap \
+        whois \
+        dnsenum \
+        nbtscan \
+        sslscan \
+        whatweb \
+    && rm -rf /var/lib/apt/lists/*
+
+# Web application testing
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        nikto \
+        sqlmap \
+        dirb \
+        gobuster \
+        wfuzz \
+        ffuf \
+    && rm -rf /var/lib/apt/lists/*
+
+# Password auditing
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        hydra \
+        john \
+    && rm -rf /var/lib/apt/lists/*
+
+# Network analysis
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        netcat-traditional \
+        socat \
+        tcpdump \
+        tshark \
+    && rm -rf /var/lib/apt/lists/*
+
+# Modern Go-based security CLI tools (shipped as Kali packages)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        nuclei \
+        subfinder \
+        httpx-toolkit \
+    && rm -rf /var/lib/apt/lists/*
+
+# Wordlists and SecLists (large — install last to keep earlier layers cacheable)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        wordlists \
+        seclists \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---------------------------------------------------------------------------
+# Desktop environment packages
+# Installs: Xvfb, x11vnc, noVNC, Openbox, xdotool, scrot, xclip, wmctrl, xterm
+# ---------------------------------------------------------------------------
+RUN /tmp/base/packages-desktop.sh
+
+# ---------------------------------------------------------------------------
+# Node.js 22.x + global npm packages
+# On Kali (non-Ubuntu distro) install-node.sh uses the official binary tarball
+# from nodejs.org instead of the NodeSource apt repository.
+# ---------------------------------------------------------------------------
+RUN /tmp/base/install-node.sh
+
+# ---------------------------------------------------------------------------
+# Google Chrome Stable (amd64 only)
+# Chrome's apt repository targets Debian/Ubuntu — works on Kali (Debian-based).
+# ---------------------------------------------------------------------------
+RUN /tmp/base/install-chrome.sh
+
+# ---------------------------------------------------------------------------
+# Playwright browser binaries + OS-level dependencies
+# ---------------------------------------------------------------------------
+RUN /tmp/base/install-playwright.sh
+
+# ---------------------------------------------------------------------------
+# Agent system user (uid/gid 1000, passwordless sudo)
+# ---------------------------------------------------------------------------
+RUN /tmp/base/create-agent-user.sh
+
+# ---------------------------------------------------------------------------
+# Coding agents
+# Installs: Claude Code (as agent user), Aider (pip3), MCP Python libs
+# ---------------------------------------------------------------------------
+RUN /tmp/base/install-agents.sh
+
+# ---------------------------------------------------------------------------
+# Optional developer toolchains (controlled by build args)
+# packages-dev.sh detects "kali" distro and adjusts install methods:
+#   .NET  -> dotnet-install.sh script
+#   Rust  -> rustup (same on all distros)
+#   Docker -> Debian/bookworm feed
+# ---------------------------------------------------------------------------
+ARG INSTALL_DOTNET=false
+ARG INSTALL_RUST=false
+ARG INSTALL_DOCKER=false
+
+RUN INSTALL_DOTNET="${INSTALL_DOTNET}" \
+    INSTALL_RUST="${INSTALL_RUST}" \
+    INSTALL_DOCKER="${INSTALL_DOCKER}" \
+    /tmp/base/packages-dev.sh
+
+# ---------------------------------------------------------------------------
+# Pre-create workspace, runtime, and desktop config directories
+# ---------------------------------------------------------------------------
+RUN mkdir -p \
+        /workspace/projects \
+        /workspace/.state \
+        /workspace/.agent-memory \
+        /home/agent/.claude/teams \
+        /home/agent/.claude/tasks \
+        /home/agent/.config/openbox \
+        /var/run/sshd \
+    && chown -R agent:agent /workspace /home/agent
+
+# ---------------------------------------------------------------------------
+# SSH host key generation and configuration
+# ---------------------------------------------------------------------------
+RUN ssh-keygen -A
+COPY config/sshd_config /etc/ssh/sshd_config
+
+# ---------------------------------------------------------------------------
+# Openbox window manager configuration
+# ---------------------------------------------------------------------------
+COPY config/openbox-rc.xml /home/agent/.config/openbox/rc.xml
+RUN chown agent:agent /home/agent/.config/openbox/rc.xml
+
+# ---------------------------------------------------------------------------
+# Chrome enterprise policies
+# ---------------------------------------------------------------------------
+RUN mkdir -p /etc/opt/chrome/policies/managed
+COPY config/chrome-policies.json /etc/opt/chrome/policies/managed/agentcore.json
+
+# ---------------------------------------------------------------------------
+# AgentCore runtime components
+# ---------------------------------------------------------------------------
+COPY mcp-tools/      /opt/mcp-tools/
+COPY api/            /opt/agentcore/api/
+COPY auto-update/    /opt/agentcore/auto-update/
+COPY repo-sync/      /opt/agentcore/repo-sync/
+COPY entrypoint/     /opt/agentcore/entrypoint/
+
+# Normalise line endings (handles Windows CRLF) and mark all .sh files executable
+RUN find /opt/agentcore -name '*.sh' -exec sed -i 's/\r$//' {} \; \
+    && find /opt/agentcore -name '*.sh' -exec chmod +x {} \; \
+    && chmod +x /opt/agentcore/entrypoint/entrypoint.sh
+
+# ---------------------------------------------------------------------------
+# Ad-blocking hosts list (best-effort; failure does not abort the build)
+# ---------------------------------------------------------------------------
+RUN curl -fsSL https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts \
+        -o /opt/adblock-hosts.txt || true
+
+# ---------------------------------------------------------------------------
+# Runtime environment variables
+# ---------------------------------------------------------------------------
+ENV WORKSPACE_ROOT=/workspace
+ENV PROJECTS_DIR=/workspace/projects
+ENV HOME=/home/agent
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+# Display / VNC settings (can be overridden at runtime via -e flags)
+ENV DISPLAY=:0
+ENV VNC_PASSWORD=agentpwd
+ENV VNC_RESOLUTION=1920x1080x24
+
+# ---------------------------------------------------------------------------
+# Cleanup — remove build-time scripts and stale apt cache
+# ---------------------------------------------------------------------------
+RUN rm -rf /tmp/base /var/lib/apt/lists/*
+
+# SSH (22), VNC (5900), noVNC (6080), AgentCore HTTP API (8080)
+EXPOSE 22 5900 6080 8080
+
+VOLUME /workspace
+WORKDIR /workspace
+
+ENTRYPOINT ["/opt/agentcore/entrypoint/entrypoint.sh"]

@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  agent:
+    build:
+      context: ..
+      dockerfile: dockerfiles/Dockerfile.minimal
+    image: agentcore:minimal
+    container_name: agentcore
+    environment:
+      - AGENT_TYPE=claude
+      - AGENT_ID=solo
+      - ENABLE_API=true
+    volumes:
+      - workspace:/workspace
+      - ./credentials:/credentials:ro
+    ports:
+      - "2222:22"
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  workspace:

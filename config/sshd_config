@@ -1,0 +1,37 @@
+# sshd_config — OpenSSH server configuration for AgentCore containers.
+# Applied to /etc/ssh/sshd_config at image build time.
+
+# Network
+Port 22
+
+# Authentication
+PermitRootLogin no
+PubkeyAuthentication yes
+PasswordAuthentication yes
+AllowUsers agent
+UsePAM yes
+
+# Limits
+MaxAuthTries 6
+MaxSessions 10
+LoginGraceTime 120
+
+# Hardening
+StrictModes yes
+
+# X11 forwarding (useful for GUI apps forwarded over SSH)
+X11Forwarding yes
+X11DisplayOffset 10
+
+# Suppress MOTD (container-specific; agents don't need login banners)
+PrintMotd no
+
+# Locale passthrough
+AcceptEnv LANG LC_*
+
+# SFTP subsystem
+Subsystem sftp /usr/lib/openssh/sftp-server
+
+# Keep-alive: send a ping every 60 s, disconnect after 3 missed replies (3 min)
+ClientAliveInterval 60
+ClientAliveCountMax 3

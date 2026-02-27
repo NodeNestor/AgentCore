@@ -1,0 +1,110 @@
+version: "3.8"
+
+services:
+  # LLM Proxy
+  codegate:
+    image: codegate:latest
+    container_name: codegate
+    ports:
+      - "9211:9211"
+      - "9212:9212"
+    volumes:
+      - codegate-data:/data
+    restart: unless-stopped
+
+  # Lead agent (full desktop for browser tasks)
+  agent-lead:
+    build:
+      context: ..
+      dockerfile: dockerfiles/Dockerfile.ubuntu
+    image: agentcore:ubuntu
+    container_name: agent-lead
+    environment:
+      - AGENT_TYPE=claude
+      - AGENT_ID=lead
+      - AGENT_NAME=lead
+      - AGENT_ROLE=lead
+      - ENABLE_DESKTOP=true
+      - ENABLE_API=true
+      - CODEGATE_URL=http://codegate:9212
+      - PROXY_API_KEY=${PROXY_API_KEY}
+      - QDRANT_URL=http://qdrant:6333
+    volumes:
+      - workspace-lead:/workspace
+      - ./credentials:/credentials:ro
+    ports:
+      - "2222:22"
+      - "6080:6080"
+      - "8080:8080"
+    depends_on:
+      - codegate
+    restart: unless-stopped
+
+  # Worker agent 1 (CLI only)
+  agent-worker-1:
+    build:
+      context: ..
+      dockerfile: dockerfiles/Dockerfile.minimal
+    image: agentcore:minimal
+    container_name: agent-worker-1
+    environment:
+      - AGENT_TYPE=claude
+      - AGENT_ID=worker-1
+      - AGENT_NAME=worker-1
+      - AGENT_ROLE=backend
+      - ENABLE_API=true
+      - CODEGATE_URL=http://codegate:9212
+      - PROXY_API_KEY=${PROXY_API_KEY}
+      - QDRANT_URL=http://qdrant:6333
+    volumes:
+      - workspace-worker1:/workspace
+      - ./credentials:/credentials:ro
+    ports:
+      - "2223:22"
+      - "8081:8080"
+    depends_on:
+      - codegate
+    restart: unless-stopped
+
+  # Worker agent 2 (CLI only)
+  agent-worker-2:
+    build:
+      context: ..
+      dockerfile: dockerfiles/Dockerfile.minimal
+    image: agentcore:minimal
+    container_name: agent-worker-2
+    environment:
+      - AGENT_TYPE=claude
+      - AGENT_ID=worker-2
+      - AGENT_NAME=worker-2
+      - AGENT_ROLE=frontend
+      - ENABLE_API=true
+      - CODEGATE_URL=http://codegate:9212
+      - PROXY_API_KEY=${PROXY_API_KEY}
+      - QDRANT_URL=http://qdrant:6333
+    volumes:
+      - workspace-worker2:/workspace
+      - ./credentials:/credentials:ro
+    ports:
+      - "2224:22"
+      - "8082:8080"
+    depends_on:
+      - codegate
+    restart: unless-stopped
+
+  # Shared memory (Qdrant)
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    restart: unless-stopped
+
+volumes:
+  codegate-data:
+  workspace-lead:
+  workspace-worker1:
+  workspace-worker2:
+  qdrant-data:

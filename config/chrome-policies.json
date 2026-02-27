@@ -1,0 +1,18 @@
+{
+  "_comment": "Chrome enterprise managed policy file for AgentCore containers.",
+  "_comment2": "Installed to /etc/opt/chrome/policies/managed/agentcore.json at image build time.",
+  "_comment3": "Disables all telemetry, sign-in, sync, password/autofill, and background services.",
+
+  "MetricsReportingEnabled": false,
+  "DefaultBrowserSettingEnabled": false,
+  "BrowserSignin": 0,
+  "SyncDisabled": true,
+  "PasswordManagerEnabled": false,
+  "AutofillAddressEnabled": false,
+  "AutofillCreditCardEnabled": false,
+  "TranslateEnabled": false,
+  "SpellCheckServiceEnabled": false,
+  "BackgroundModeEnabled": false,
+  "HardwareAccelerationModeEnabled": false,
+  "CommandLineFlagSecurityWarningsEnabled": false
+}
