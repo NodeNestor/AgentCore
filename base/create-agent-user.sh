@@ -13,21 +13,21 @@ AGENT_PASSWORD="agent"
 echo "[create-agent-user] Setting up user '${AGENT_USER}' (uid=${AGENT_UID}, gid=${AGENT_GID})..."
 
 # ---------------------------------------------------------------------------
+# Resolve uid collision (must happen before gid — can't delete a primary group)
+# ---------------------------------------------------------------------------
+EXISTING_USER="$(getent passwd "${AGENT_UID}" | cut -d: -f1 || true)"
+if [ -n "${EXISTING_USER}" ] && [ "${EXISTING_USER}" != "${AGENT_USER}" ]; then
+    echo "[create-agent-user] Removing existing user '${EXISTING_USER}' that owns uid ${AGENT_UID}..."
+    userdel -r "${EXISTING_USER}" 2>/dev/null || userdel "${EXISTING_USER}" 2>/dev/null || true
+fi
+
+# ---------------------------------------------------------------------------
 # Resolve gid collision
 # ---------------------------------------------------------------------------
 EXISTING_GROUP="$(getent group "${AGENT_GID}" | cut -d: -f1 || true)"
 if [ -n "${EXISTING_GROUP}" ] && [ "${EXISTING_GROUP}" != "${AGENT_USER}" ]; then
     echo "[create-agent-user] Removing existing group '${EXISTING_GROUP}' that owns gid ${AGENT_GID}..."
     groupdel "${EXISTING_GROUP}"
-fi
-
-# ---------------------------------------------------------------------------
-# Resolve uid collision
-# ---------------------------------------------------------------------------
-EXISTING_USER="$(getent passwd "${AGENT_UID}" | cut -d: -f1 || true)"
-if [ -n "${EXISTING_USER}" ] && [ "${EXISTING_USER}" != "${AGENT_USER}" ]; then
-    echo "[create-agent-user] Removing existing user '${EXISTING_USER}' that owns uid ${AGENT_UID}..."
-    userdel -r "${EXISTING_USER}" 2>/dev/null || userdel "${EXISTING_USER}" 2>/dev/null || true
 fi
 
 # ---------------------------------------------------------------------------
