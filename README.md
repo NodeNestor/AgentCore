@@ -15,6 +15,7 @@ AgentCore is a universal Docker container for coding agents. It ships with SSH a
   │    30-credentials inject secrets from /credentials mount             │
   │    40-agent-setup install / configure selected agent                 │
   │    50-mcp-tools   auto-discover + configure MCP servers              │
+  │    52-memory-hooks install HiveMindDB auto-memory hooks (optional)  │
   │    55-plugins     clone plugin repos, symlink into agent             │
   │    60-llm-config  wire CodeGate / proxy / direct API keys            │
   │    65-repos       clone + sync git repos (background)                │
@@ -77,6 +78,7 @@ modules/
   30-credentials.sh   inject secrets from /credentials
   40-agent-setup.sh   configure selected agent
   50-mcp-tools.sh     auto-discover and write MCP config
+  52-memory-hooks.sh  install HiveMindDB auto-memory hooks
   55-plugins.sh       clone plugin repos, symlink into agent
   60-llm-config.sh    configure CodeGate / proxy / direct keys
   65-repos.sh         clone and sync REPOS in background
@@ -109,6 +111,28 @@ A lightweight HTTP API on port 8080 manages agent sessions and exposes runtime s
 ### LLM Proxy Integration
 
 `60-llm-config.sh` wires the agent to its LLM endpoint in priority order: CodeGate proxy, generic LLM proxy, then direct API keys. It handles the `apiKeyHelper` pattern for Claude Code OAuth credential files. When `CODEGATE_URL` is set, all LLM traffic routes through CodeGate for multi-account routing, failover, and guardrails.
+
+### HiveMindDB Auto-Memory
+
+When `HIVEMINDDB_URL` is set, agents get automatic persistent shared memory powered by [HiveMindDB](https://github.com/NodeNestor/HiveMindDB):
+
+- **MCP tools** (20 tools): `remember`, `recall`, `search`, `extract`, `graph_query`, `channel_share`, etc. Auto-discovered via `library.json`.
+- **Claude Code hooks** (4 hooks): Installed automatically by `52-memory-hooks.sh`. No manual config needed.
+
+| Hook | What it does |
+|------|-------------|
+| **SessionStart** | Registers agent with HiveMindDB, recalls recent memories, injects as context |
+| **UserPromptSubmit** | Semantic search on every prompt — injects relevant memories (RAG) |
+| **PostToolUse** | Tracks file edits/writes as memories (async) |
+| **Stop** | Sends heartbeat (async) |
+
+```bash
+# Enable in docker-compose.yml or .env:
+HIVEMINDDB_URL=http://hivemind:8100
+MEMORY_PROVIDER=hiveminddb
+```
+
+The agent automatically gets context from previous sessions and shared knowledge from other agents in the swarm. No manual `remember` calls needed — though the MCP tools are available for explicit memory management.
 
 ### Git Repo Auto-Sync
 

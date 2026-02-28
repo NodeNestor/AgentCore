@@ -69,14 +69,18 @@ COPY config/sshd_config /etc/ssh/sshd_config
 # AgentCore runtime components
 # ---------------------------------------------------------------------------
 COPY mcp-tools/      /opt/mcp-tools/
+COPY hooks/          /opt/agentcore/hooks/
 COPY api/            /opt/agentcore/api/
 COPY auto-update/    /opt/agentcore/auto-update/
 COPY repo-sync/      /opt/agentcore/repo-sync/
 COPY entrypoint/     /opt/agentcore/entrypoint/
 
-# Normalise line endings (handles Windows CRLF) and mark all .sh files executable
-RUN find /opt/agentcore -name '*.sh' -exec sed -i 's/\r$//' {} \; \
-    && find /opt/agentcore -name '*.sh' -exec chmod +x {} \; \
+# Install HiveMindDB MCP server dependencies
+RUN cd /opt/mcp-tools/hiveminddb && npm install --production 2>/dev/null || true
+
+# Normalise line endings (handles Windows CRLF) and mark scripts executable
+RUN find /opt/agentcore /opt/mcp-tools -type f \( -name '*.sh' -o -name '*.js' -o -name '*.py' \) -exec sed -i 's/\r$//' {} \; \
+    && find /opt/agentcore /opt/mcp-tools -name '*.sh' -exec chmod +x {} \; \
     && chmod +x /opt/agentcore/entrypoint/entrypoint.sh
 
 # ---------------------------------------------------------------------------

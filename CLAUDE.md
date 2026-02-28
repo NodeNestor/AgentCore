@@ -69,6 +69,13 @@ AgentCore/
 │   ├── openbox-rc.xml              Window manager: Chrome auto-maximize
 │   └── chrome-policies.json        Chrome: disable telemetry, signin, autofill
 │
+├── hooks/
+│   └── hivemind/                   HiveMindDB auto-memory hooks
+│       ├── session-start.sh        SessionStart: register agent + recall memories
+│       ├── prompt-search.sh        UserPromptSubmit: semantic RAG search
+│       ├── track-changes.sh        PostToolUse (Edit|Write): log file changes (async)
+│       └── session-stop.sh         Stop: heartbeat (async)
+│
 ├── entrypoint/
 │   ├── entrypoint.sh               Main orchestrator: sources lib/ then modules/*
 │   ├── lib/
@@ -81,6 +88,7 @@ AgentCore/
 │       ├── 30-credentials.sh       Copy from /credentials mount into agent home
 │       ├── 40-agent-setup.sh       Claude onboarding bypass, settings.json, teams
 │       ├── 50-mcp-tools.sh         Auto-discover MCP tools from library.json
+│       ├── 52-memory-hooks.sh      Install HiveMindDB auto-memory hooks
 │       ├── 55-plugins.sh           Clone PLUGIN_REPOS, symlink into agent
 │       ├── 60-llm-config.sh        Wire CodeGate/proxy/direct API keys
 │       ├── 65-repos.sh             Clone REPOS, start background sync daemon
@@ -171,6 +179,7 @@ entrypoint.sh runs as root:
       30-credentials→ copy from /credentials mount
       40-agent-setup→ Claude onboarding bypass, settings files
       50-mcp-tools  → filter library.json → write ~/.claude/mcp.json
+      52-memory-hooks→ [conditional] install HiveMindDB auto-memory hooks
       55-plugins    → clone PLUGIN_REPOS, symlink plugins
       60-llm-config → write ~/.claude/settings.json with LLM endpoint
       65-repos      → clone REPOS, start sync daemon in background
@@ -186,6 +195,7 @@ entrypoint.sh runs as root:
 ```
 /opt/agentcore/
   entrypoint/      entrypoint.sh + lib/ + modules/
+  hooks/           HiveMindDB auto-memory hook scripts
   api/             server.py
   auto-update/     updater.sh + agents/
   repo-sync/       sync.sh
@@ -236,6 +246,21 @@ The module runs a Python script that:
   }
 }
 ```
+
+### HiveMindDB Auto-Memory Hooks (`52-memory-hooks.sh`)
+
+When `HIVEMINDDB_URL` is set, installs Claude Code hooks that automatically manage shared memory:
+
+| Hook Event | Script | Behavior |
+|-----------|--------|----------|
+| `SessionStart` | `session-start.sh` | Registers agent with HiveMindDB, recalls recent memories, injects as context |
+| `UserPromptSubmit` | `prompt-search.sh` | Semantic search on user's prompt → injects relevant memories (RAG) |
+| `PostToolUse` | `track-changes.sh` | Logs file edits/writes as memories (async, non-blocking) |
+| `Stop` | `session-stop.sh` | Sends heartbeat (async, non-blocking) |
+
+For Aider/OpenCode (no hooks API): writes a system prompt reminder about memory MCP tools.
+
+Hook scripts live at `/opt/agentcore/hooks/hivemind/` and are copied to `~/.claude/hooks/hivemind/` at startup. All hooks are no-ops when `HIVEMINDDB_URL` is unset.
 
 ### LLM Config Priority (`60-llm-config.sh`)
 
@@ -333,9 +358,10 @@ All defaults are in `entrypoint/lib/env.sh`. Full reference with comments in `ex
 ### Memory
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MEMORY_PROVIDER` | `local` | `local`, `mem0`, `qdrant` |
+| `MEMORY_PROVIDER` | `local` | `local`, `mem0`, `qdrant`, `hiveminddb` |
 | `MEM0_API_KEY` | _(empty)_ | Enables mem0 MCP |
 | `QDRANT_URL` | _(empty)_ | Enables Qdrant MCP |
+| `HIVEMINDDB_URL` | _(empty)_ | Enables HiveMindDB MCP + auto-memory hooks |
 
 ---
 

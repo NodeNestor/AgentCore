@@ -123,14 +123,18 @@ COPY config/chrome-policies.json /etc/opt/chrome/policies/managed/agentcore.json
 # AgentCore runtime components
 # ---------------------------------------------------------------------------
 COPY mcp-tools/      /opt/mcp-tools/
+COPY hooks/          /opt/agentcore/hooks/
 COPY api/            /opt/agentcore/api/
 COPY auto-update/    /opt/agentcore/auto-update/
 COPY repo-sync/      /opt/agentcore/repo-sync/
 COPY entrypoint/     /opt/agentcore/entrypoint/
 
+# Install HiveMindDB MCP server dependencies
+RUN cd /opt/mcp-tools/hiveminddb && npm install --production 2>/dev/null || true
+
 # Normalise line endings (handles Windows CRLF) and mark all .sh files executable
-RUN find /opt/agentcore -name '*.sh' -exec sed -i 's/\r$//' {} \; \
-    && find /opt/agentcore -name '*.sh' -exec chmod +x {} \; \
+RUN find /opt/agentcore /opt/mcp-tools -name '*.sh' -exec sed -i 's/\r$//' {} \; \
+    && find /opt/agentcore /opt/mcp-tools -name '*.sh' -exec chmod +x {} \; \
     && chmod +x /opt/agentcore/entrypoint/entrypoint.sh
 
 # ---------------------------------------------------------------------------
