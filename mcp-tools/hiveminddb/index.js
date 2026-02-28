@@ -25,9 +25,10 @@ const {
   ListToolsRequestSchema,
 } = require("@modelcontextprotocol/sdk/types.js");
 
+const urlFlagIdx = process.argv.indexOf("--url");
 const BASE_URL =
   process.argv.find((a) => a.startsWith("--url="))?.split("=")[1] ||
-  process.argv[process.argv.indexOf("--url") + 1] ||
+  (urlFlagIdx > -1 ? process.argv[urlFlagIdx + 1] : null) ||
   process.env.HIVEMINDDB_URL ||
   "http://localhost:8100";
 

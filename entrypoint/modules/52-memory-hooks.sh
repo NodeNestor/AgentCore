@@ -14,7 +14,9 @@
 HOOKS_SRC=/opt/agentcore/hooks/hivemind
 HOOKS_DST=/home/agent/.claude/hooks/hivemind
 SETTINGS_JSON=/home/agent/.claude/settings.json
-MCP_OUT=/home/agent/.claude/mcp.json
+# Note: MCP server registration (including agent-memory removal and hiveminddb
+# env injection) is handled entirely by 50-mcp-tools.sh. This module only
+# manages hooks and env vars in settings.json.
 
 # -----------------------------------------------------------------
 # Guard: skip if HiveMindDB not configured
@@ -60,6 +62,16 @@ except Exception:
     data = {}
 
 hooks_dir = "$HOOKS_DST"
+hiveminddb_url = "$HIVEMINDDB_URL"
+agent_id = "$AGENT_ID"
+agent_name = "$AGENT_NAME"
+
+# Inject env vars so hooks and MCP servers can access them
+# (su - agent strips exported vars from the entrypoint)
+data.setdefault("env", {})
+data["env"]["HIVEMINDDB_URL"] = hiveminddb_url
+data["env"]["AGENT_ID"] = agent_id
+data["env"]["AGENT_NAME"] = agent_name
 
 # Define the HiveMindDB hooks
 hivemind_hooks = {
@@ -138,27 +150,6 @@ with open(path, "w") as f:
 print(f"[INFO]  [52-memory-hooks] Installed 4 HiveMindDB hooks into settings.json")
 PYEOF
         chown agent:agent "$SETTINGS_JSON" 2>/dev/null || true
-
-        # Remove local agent-memory MCP tool — HiveMindDB replaces it
-        log_info "  Removing local agent-memory (replaced by HiveMindDB)..."
-        python3 - <<PYEOF
-import json
-
-mcp_path = "$MCP_OUT"
-try:
-    with open(mcp_path) as f:
-        mcp = json.load(f)
-    if "agent-memory" in mcp.get("mcpServers", {}):
-        del mcp["mcpServers"]["agent-memory"]
-        with open(mcp_path, "w") as f:
-            json.dump(mcp, f, indent=2)
-        print("[INFO]  [52-memory-hooks] Removed agent-memory from mcp.json (replaced by hiveminddb)")
-    else:
-        print("[INFO]  [52-memory-hooks] agent-memory not in mcp.json, nothing to remove")
-except Exception as e:
-    print(f"[WARN]  [52-memory-hooks] Could not update mcp.json: {e}")
-PYEOF
-        chown agent:agent "$MCP_OUT" 2>/dev/null || true
         ;;
 
     aider|opencode)

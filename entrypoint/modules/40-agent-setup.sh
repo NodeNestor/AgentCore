@@ -13,11 +13,7 @@ case "$AGENT_TYPE" in
         log_info "Accepting Claude ToS..."
         su - agent -c "claude --dangerously-skip-permissions --version" 2>/dev/null || true
 
-        # 2. First-run conversation to initialize workspace state
-        log_info "Running Claude first-run initialization..."
-        su - agent -c "cd /workspace/projects && claude -p 'ready' --dangerously-skip-permissions" 2>/dev/null || true
-
-        # 3. Set onboarding flags in ~/.claude.json
+        # 2. Set onboarding flags in ~/.claude.json
         log_info "Writing ~/.claude.json onboarding flags..."
         CLAUDE_JSON=/home/agent/.claude.json
         python3 - <<PYEOF
@@ -39,7 +35,7 @@ with open(path, "w") as f:
 PYEOF
         chown agent:agent "$CLAUDE_JSON" 2>/dev/null || true
 
-        # 4. Merge settings.local.json
+        # 3. Merge settings.local.json
         log_info "Writing settings.local.json..."
         SETTINGS_LOCAL=/home/agent/.claude/settings.local.json
         python3 - <<PYEOF
@@ -64,7 +60,7 @@ with open(path, "w") as f:
 PYEOF
         chown agent:agent "$SETTINGS_LOCAL" 2>/dev/null || true
 
-        # 5. Enable experimental teams in settings.json env block
+        # 4. Enable experimental teams in settings.json env block
         log_info "Enabling experimental agent teams in settings.json..."
         SETTINGS_JSON=/home/agent/.claude/settings.json
         python3 - <<PYEOF

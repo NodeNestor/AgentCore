@@ -178,7 +178,7 @@ entrypoint.sh runs as root:
       20-desktop    → [conditional] start Xvfb+VNC+noVNC
       30-credentials→ copy from /credentials mount
       40-agent-setup→ Claude onboarding bypass, settings files
-      50-mcp-tools  → filter library.json → write ~/.claude/mcp.json
+      50-mcp-tools  → filter library.json → register via `claude mcp add-json`
       52-memory-hooks→ [conditional] install HiveMindDB auto-memory hooks
       55-plugins    → clone PLUGIN_REPOS, symlink plugins
       60-llm-config → write ~/.claude/settings.json with LLM endpoint
@@ -207,7 +207,7 @@ entrypoint.sh runs as root:
   custom/          mount point for user MCP tools
 
 /home/agent/
-  .claude/         settings.json, mcp.json, apiKeyHelper.sh, teams/, tasks/
+  .claude/         settings.json, apiKeyHelper.sh, teams/, tasks/
   .ssh/            injected SSH keys
 
 /workspace/
@@ -224,12 +224,13 @@ entrypoint.sh runs as root:
 
 ### MCP Tool Auto-Discovery (`50-mcp-tools.sh`)
 
-The module runs a Python script that:
+The module:
 1. Reads `mcp-tools/library.json` — a dict of `mcpServers`
 2. For each tool, checks: `requiresDesktop` (skip if desktop off), `requiredEnv` (skip if missing)
 3. Includes tools that are `default: true` OR have all `requiredEnv` vars set
 4. Scans `/opt/mcp-tools/custom/` for additional tools with `manifest.json`
-5. Writes final config to `/home/agent/.claude/mcp.json`
+5. For Claude: registers each tool via `claude mcp add-json` (writes to `~/.claude.json`)
+6. For non-Claude agents: writes `mcpServers` directly to `settings.json`
 
 **library.json format:**
 ```json
