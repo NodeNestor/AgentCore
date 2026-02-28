@@ -150,6 +150,82 @@ with open(path, "w") as f:
 print(f"[INFO]  [52-memory-hooks] Installed 4 HiveMindDB hooks into settings.json")
 PYEOF
         chown agent:agent "$SETTINGS_JSON" 2>/dev/null || true
+
+        # ---------------------------------------------------------------
+        # 3. Task watcher: WebSocket daemon + inbox hook
+        # ---------------------------------------------------------------
+        log_info "  Installing task watcher and inbox hook..."
+
+        # Copy task-watcher.js and task-inbox.sh to agent hooks dir
+        if [ -f "$HOOKS_SRC/task-watcher.js" ]; then
+            cp -f "$HOOKS_SRC/task-watcher.js" "$HOOKS_DST/"
+            chown agent:agent "$HOOKS_DST/task-watcher.js" 2>/dev/null || true
+            log_info "  Copied task-watcher.js to $HOOKS_DST"
+        fi
+        if [ -f "$HOOKS_SRC/task-inbox.sh" ]; then
+            cp -f "$HOOKS_SRC/task-inbox.sh" "$HOOKS_DST/"
+            chmod +x "$HOOKS_DST/task-inbox.sh" 2>/dev/null || true
+            chown agent:agent "$HOOKS_DST/task-inbox.sh" 2>/dev/null || true
+            log_info "  Copied task-inbox.sh to $HOOKS_DST"
+        fi
+
+        # Create state directory for the task inbox
+        mkdir -p /workspace/.state
+        chown agent:agent /workspace/.state 2>/dev/null || true
+
+        # Start the task-watcher daemon in background as the agent user
+        if [ -f "$HOOKS_DST/task-watcher.js" ]; then
+            su - agent -c "HIVEMINDDB_URL=$HIVEMINDDB_URL AGENT_ID=$AGENT_ID AGENT_NAME=$AGENT_NAME node $HOOKS_DST/task-watcher.js &" 2>/dev/null
+            log_info "  Task watcher daemon started in background."
+        fi
+
+        # Add the task-inbox hook to UserPromptSubmit in settings.json
+        python3 - <<PYEOF2
+import json
+
+path = "$SETTINGS_JSON"
+
+try:
+    with open(path) as f:
+        data = json.load(f)
+except Exception:
+    data = {}
+
+hooks_dir = "$HOOKS_DST"
+
+# The task-inbox hook entry
+task_inbox_hook = {
+    "matcher": "",
+    "hooks": [
+        {
+            "type": "command",
+            "command": f"{hooks_dir}/task-inbox.sh",
+            "timeout": 5
+        }
+    ]
+}
+
+existing_hooks = data.get("hooks", {})
+if "UserPromptSubmit" not in existing_hooks:
+    existing_hooks["UserPromptSubmit"] = []
+
+# Avoid duplicates — check if task-inbox hook already present
+has_task_inbox = any(
+    "task-inbox" in str(h.get("hooks", [{}])[0].get("command", ""))
+    for h in existing_hooks["UserPromptSubmit"]
+    if isinstance(h, dict)
+)
+if not has_task_inbox:
+    existing_hooks["UserPromptSubmit"].append(task_inbox_hook)
+
+data["hooks"] = existing_hooks
+
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+
+print("[INFO]  [52-memory-hooks] Added task-inbox hook to UserPromptSubmit")
+PYEOF2
+        chown agent:agent "$SETTINGS_JSON" 2>/dev/null || true
         ;;
 
     aider|opencode)

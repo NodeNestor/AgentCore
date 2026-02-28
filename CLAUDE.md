@@ -70,11 +70,13 @@ AgentCore/
 │   └── chrome-policies.json        Chrome: disable telemetry, signin, autofill
 │
 ├── hooks/
-│   └── hivemind/                   HiveMindDB auto-memory hooks
+│   └── hivemind/                   HiveMindDB hooks + task watcher
 │       ├── session-start.sh        SessionStart: register agent + recall memories
 │       ├── prompt-search.sh        UserPromptSubmit: semantic RAG search
 │       ├── track-changes.sh        PostToolUse (Edit|Write): log file changes (async)
-│       └── session-stop.sh         Stop: heartbeat (async)
+│       ├── session-stop.sh         Stop: heartbeat (async)
+│       ├── task-watcher.js         WebSocket daemon: subscribe to HiveMindDB tasks
+│       └── task-inbox.sh           UserPromptSubmit: inject pending tasks as context
 │
 ├── entrypoint/
 │   ├── entrypoint.sh               Main orchestrator: sources lib/ then modules/*
@@ -88,7 +90,7 @@ AgentCore/
 │       ├── 30-credentials.sh       Copy from /credentials mount into agent home
 │       ├── 40-agent-setup.sh       Claude onboarding bypass, settings.json, teams
 │       ├── 50-mcp-tools.sh         Auto-discover MCP tools from library.json
-│       ├── 52-memory-hooks.sh      Install HiveMindDB auto-memory hooks
+│       ├── 52-memory-hooks.sh      Install HiveMindDB auto-memory hooks + task watcher
 │       ├── 55-plugins.sh           Clone PLUGIN_REPOS, symlink into agent
 │       ├── 60-llm-config.sh        Wire CodeGate/proxy/direct API keys
 │       ├── 65-repos.sh             Clone REPOS, start background sync daemon
@@ -195,7 +197,7 @@ entrypoint.sh runs as root:
 ```
 /opt/agentcore/
   entrypoint/      entrypoint.sh + lib/ + modules/
-  hooks/           HiveMindDB auto-memory hook scripts
+  hooks/           HiveMindDB auto-memory hooks + task watcher
   api/             server.py
   auto-update/     updater.sh + agents/
   repo-sync/       sync.sh
@@ -393,7 +395,7 @@ All defaults are in `entrypoint/lib/env.sh`. Full reference with comments in `ex
 
 1. Copy closest existing Dockerfile
 2. Add/remove `RUN /tmp/base/*.sh` lines for the packages needed
-3. All Dockerfiles must: COPY `base/`, `config/`, `mcp-tools/`, `api/`, `auto-update/`, `repo-sync/`, `entrypoint/`
+3. All Dockerfiles must: COPY `base/`, `config/`, `hooks/`, `mcp-tools/`, `api/`, `auto-update/`, `repo-sync/`, `entrypoint/`
 4. All must set `ENTRYPOINT ["/opt/agentcore/entrypoint/entrypoint.sh"]`
 
 ### Add an external service (memory, database, etc.)
