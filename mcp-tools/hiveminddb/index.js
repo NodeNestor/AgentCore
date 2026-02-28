@@ -11,9 +11,9 @@
  * extraction, etc.)
  *
  * Usage:
- *   npx hiveminddb-mcp --url http://localhost:8100
+ *   node index.js --url http://localhost:8100
  *   # or with env:
- *   HIVEMINDDB_URL=http://localhost:8100 npx hiveminddb-mcp
+ *   HIVEMINDDB_URL=http://localhost:8100 node index.js
  */
 
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");

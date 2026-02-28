@@ -139,20 +139,28 @@ The agent automatically gets context from previous sessions and shared knowledge
 The HiveMindDB hooks and MCP server work outside of Docker too. You can connect any local Claude Code instance to a running HiveMindDB for persistent memory across sessions:
 
 ```bash
-# 1. Start HiveMindDB (Docker, binary, or from the full stack)
-docker run -d --name hiveminddb -p 8100:8100 ghcr.io/nodenestor/hiveminddb:latest
+# 1. Build and start HiveMindDB
+git clone https://github.com/NodeNestor/HiveMindDB.git
+cd HiveMindDB
+docker build -f deploy/docker/Dockerfile -t hiveminddb .
+docker run -d --name hiveminddb -p 8100:8100 -v hivemind-data:/data hiveminddb
 
-# 2. Register MCP server
-claude mcp add-json hiveminddb '{"command":"node","args":["path/to/HiveMindDB/crates/mcp-server/src/index.js","--url","http://localhost:8100"]}'
+# 2. Install MCP server dependencies
+cd crates/mcp-server && npm install && cd ../..
 
-# 3. Install hooks
+# 3. Register MCP server with Claude Code
+claude mcp add-json hiveminddb '{"command":"node","args":["<path-to>/HiveMindDB/crates/mcp-server/src/index.js","--url","http://localhost:8100"]}'
+
+# 4. Install hooks
 mkdir -p ~/.claude/hooks/hivemind
 cp hooks/hivemind/* ~/.claude/hooks/hivemind/
 chmod +x ~/.claude/hooks/hivemind/*.sh
 
-# 4. Add hook config + env vars to ~/.claude/settings.json
+# 5. Add hook config + env vars to ~/.claude/settings.json
 #    (see HiveMindDB README for the full settings.json snippet)
 ```
+
+> **Note:** Replace `<path-to>` with the actual path where you cloned HiveMindDB.
 
 This gives your local Claude Code the same auto-memory system that Docker agents get — session recall, semantic RAG on every prompt, file change tracking, and 20 MCP tools. Local and Docker agents can share the same HiveMindDB instance.
 

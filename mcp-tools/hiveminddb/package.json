@@ -2,12 +2,12 @@
   "name": "hiveminddb-mcp",
   "version": "0.1.0",
   "description": "MCP server for HiveMindDB — distributed AI agent memory",
-  "main": "src/index.js",
+  "main": "index.js",
   "bin": {
-    "hiveminddb-mcp": "src/index.js"
+    "hiveminddb-mcp": "index.js"
   },
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
