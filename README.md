@@ -134,6 +134,28 @@ MEMORY_PROVIDER=hiveminddb
 
 The agent automatically gets context from previous sessions and shared knowledge from other agents in the swarm. No manual `remember` calls needed — though the MCP tools are available for explicit memory management.
 
+### Using Hooks with Local Claude Code
+
+The HiveMindDB hooks and MCP server work outside of Docker too. You can connect any local Claude Code instance to a running HiveMindDB for persistent memory across sessions:
+
+```bash
+# 1. Start HiveMindDB (Docker, binary, or from the full stack)
+docker run -d --name hiveminddb -p 8100:8100 ghcr.io/nodenestor/hiveminddb:latest
+
+# 2. Register MCP server
+claude mcp add-json hiveminddb '{"command":"node","args":["path/to/HiveMindDB/crates/mcp-server/src/index.js","--url","http://localhost:8100"]}'
+
+# 3. Install hooks
+mkdir -p ~/.claude/hooks/hivemind
+cp hooks/hivemind/* ~/.claude/hooks/hivemind/
+chmod +x ~/.claude/hooks/hivemind/*.sh
+
+# 4. Add hook config + env vars to ~/.claude/settings.json
+#    (see HiveMindDB README for the full settings.json snippet)
+```
+
+This gives your local Claude Code the same auto-memory system that Docker agents get — session recall, semantic RAG on every prompt, file change tracking, and 20 MCP tools. Local and Docker agents can share the same HiveMindDB instance.
+
 ### Git Repo Auto-Sync
 
 Repos are defined in `REPOS` as newline-separated entries with format `url|path|branch|mode`. Two sync modes:
@@ -248,7 +270,8 @@ Key variables are listed below. See [`examples/.env.example`](examples/.env.exam
 | `GITHUB_TOKEN` | -- | GitHub token for authenticated git operations |
 | `REPO_SYNC_INTERVAL` | `300` | Repo sync interval in seconds |
 | `PLUGIN_REPOS` | -- | Plugin git URLs (newline-separated) |
-| `MEMORY_PROVIDER` | `local` | Memory backend: `local`, `mem0`, `qdrant` |
+| `MEMORY_PROVIDER` | `local` | Memory backend: `local`, `mem0`, `qdrant`, `hiveminddb` |
+| `HIVEMINDDB_URL` | -- | HiveMindDB URL (enables MCP tools + auto-memory hooks) |
 | `MEM0_API_KEY` | -- | Mem0 API key |
 | `QDRANT_URL` | -- | Qdrant server URL |
 | `SSH_PASSWORD` | `agent` | SSH password (empty to disable password auth) |
@@ -303,10 +326,11 @@ AgentCore
                │       8080         │    └──────────────────────┘
                └────────┬───────────┘
                         │
-               ┌────────▼──────────┐
-               │      Qdrant       │
-               │  (shared memory)  │
-               │   port 6333       │
+               ┌────────▼──────────┐       ┌───────────────────┐
+               │    HiveMindDB     │       │      Qdrant       │
+               │  (shared memory,  │  or   │  (vector memory)  │
+               │  knowledge graph) │       │   port 6333       │
+               │   port 8100       │       └───────────────────┘
                └───────────────────┘
 ```
 
@@ -330,6 +354,7 @@ MCP servers are defined in `mcp-tools/library.json`. Tools marked `default: true
 | Fetch | network | No | Manually enabled |
 | Mem0 | memory | No | `MEM0_API_KEY` set |
 | Qdrant | memory | No | `QDRANT_URL` set |
+| HiveMindDB | memory | No | `HIVEMINDDB_URL` set |
 
 Custom tools can be mounted at `/opt/mcp-tools/custom/` and added to a local `library.json` override.
 
