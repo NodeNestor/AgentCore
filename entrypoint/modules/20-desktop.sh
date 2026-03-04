@@ -26,33 +26,30 @@ sleep 1
 DISPLAY=:0 openbox-session &
 log_info "Openbox started."
 
-# Create VNC password file
-log_info "Setting VNC password..."
-mkdir -p /home/agent/.vnc
-printf '%s\n%s\n' "$VNC_PASSWORD" "$VNC_PASSWORD" | x11vnc -storepasswd /home/agent/.vnc/passwd 2>/dev/null || \
-    echo "$VNC_PASSWORD" | vncpasswd -f > /home/agent/.vnc/passwd
-chmod 600 /home/agent/.vnc/passwd
-chown -R agent:agent /home/agent/.vnc
-
-# Start x11vnc
+# Start x11vnc (no password — accessed only via localhost/docker network)
 x11vnc \
     -display :0 \
-    -rfbauth /home/agent/.vnc/passwd \
+    -nopw \
     -forever \
     -shared \
     -noxdamage \
     -rfbport 5900 \
     -bg \
     -o /var/log/x11vnc.log 2>/dev/null
-log_info "x11vnc started on port 5900."
+log_info "x11vnc started on port 5900 (no auth)."
 
 # Start noVNC via websockify
+# Debian/Ubuntu novnc package installs to /usr/share/novnc, manual installs go to /opt/noVNC
+NOVNC_DIR="/usr/share/novnc"
+[ ! -d "$NOVNC_DIR" ] && NOVNC_DIR="/opt/noVNC"
+[ ! -d "$NOVNC_DIR" ] && NOVNC_DIR="/usr/share/novnc"
+
 websockify --daemon \
-    --web=/opt/noVNC \
+    --web="$NOVNC_DIR" \
     6080 \
     localhost:5900 \
     > /var/log/novnc.log 2>&1
-log_info "noVNC started on port 6080."
+log_info "noVNC started on port 6080 (web: $NOVNC_DIR)."
 
 # --- Chrome first-run configuration ---
 log_info "Configuring Chrome defaults..."
